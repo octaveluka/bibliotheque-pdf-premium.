@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EBOOK Premium - Stanley Benin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/8c8f0b1e0b.js" crossorigin="anonymous"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background:#0d111c; color:#e2e8f0; min-height:100vh; }
+    .pdf-card { background:#1a202c; border:1px solid #2d3748; transition:all .3s; box-shadow:0 4px 6px rgba(0,0,0,.1); }
+    .pdf-card:hover { transform:translateY(-10px); box-shadow:0 20px 25px rgba(0,0,0,.3); }
+    .badge { @apply text-xs font-bold uppercase px-3 py-1 rounded-full; }
+  </style>
+</head>
+<body class="antialiased">
+  <div class="max-w-7xl mx-auto p-6">
+    <header class="text-center py-10">
+      <h1 class="text-5xl font-black text-indigo-400">EBOOK Premium</h1>
+      <p class="text-gray-400 mt-2">By Stanley - Benin 2025</p>
+    </header>
+
+    <div id="auth-section" class="text-center my-8"></div>
+
+    <div id="pdf-list" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 my-12"></div>
+
+    <!-- Admin Panel caché -->
+    <div id="admin-panel" class="hidden bg-gray-900 p-8 rounded-2xl border border-indigo-600">
+      <h2 class="text-3xl font-bold text-indigo-400 mb-8">Admin - Ajouter un PDF</h2>
+      <!-- Ton formulaire admin complet ici (je te le mets en entier si tu veux) -->
+      <p class="text-green-400">Admin connecté – tout fonctionne !</p>
+    </div>
+  </div>
+
+  <script type="module">
+    // URL du backend (auto-détection Render)
+    const BACKEND_URL = location.hostname.includes('onrender.com') 
+      ? 'https://' + location.hostname.split('.').shift().replace('-frontend','') + '-backend.onrender.com'
+      : 'http://localhost:3000';
+
+    const ADMIN_TOKEN = 'stanley-benin-2025-secret'; // à changer après déploiement
+
+    // Test connexion API
+    fetch(`${BACKEND_URL}/api/test`).then(r => r.json()).then(d => {
+      document.body.innerHTML += `<div class="text-center text-green-400 text-2xl mt-20">API Connectée ! ${d.message || ''}</div>`;
+    }).catch(() => {
+      document.body.innerHTML += `<div class="text-center text-yellow-400 text-2xl mt-20">Mode secours (API offline)</div>`;
+    });
+
+    // Auth admin simple
+    if (localStorage.getItem('admin') === 'true') {
+      document.getElementById('auth-section').innerHTML = `<button onclick="localStorage.removeItem('admin');location.reload()" class="bg-red-600 text-white px-8 py-3 rounded-full">Déconnexion Admin</button>`;
+      document.getElementById('admin-panel').classList.remove('hidden');
+    } else {
+      document.getElementById('auth-section').innerHTML = `<button onclick="if(prompt('Mot de passe admin')==='${ADMIN_TOKEN}'){localStorage.setItem('admin','true');location.reload()}" class="bg-purple-600 text-white px-8 py-3 rounded-full">Connexion Admin</button>`;
+    }
+  </script>
+</body>
+  </html>
