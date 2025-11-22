@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: bibliotheque-pdf-premium
+    env: static
+    plan: free
+    buildCommand: ""
+    staticPublishPath: .
+
+  - type: web
+    name: bibliotheque-pdf-premium-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    rootDir: server
+    envVars:
+      - key: NODE_VERSION
+        value: 20
