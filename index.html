@@ -1,60 +1,753 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EBOOK Premium - Stanley Benin</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap" rel="stylesheet">
-  <script src="https://kit.fontawesome.com/8c8f0b1e0b.js" crossorigin="anonymous"></script>
-  <style>
-    body { font-family: 'Inter', sans-serif; background:#0d111c; color:#e2e8f0; min-height:100vh; }
-    .pdf-card { background:#1a202c; border:1px solid #2d3748; transition:all .3s; box-shadow:0 4px 6px rgba(0,0,0,.1); }
-    .pdf-card:hover { transform:translateY(-10px); box-shadow:0 20px 25px rgba(0,0,0,.3); }
-    .badge { @apply text-xs font-bold uppercase px-3 py-1 rounded-full; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bibliothèque PDF - API/PostgreSQL (Secours Actif)</title>
+    <!-- Chargement de Tailwind CSS pour un design moderne et réactif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d111c; /* Fond sombre élégant */
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        /* Style des cartes PDF */
+        .pdf-card {
+            background-color: #1a202c; /* Couleur de la carte plus foncée */
+            border: 1px solid #2d3748;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease-in-out;
+            cursor: pointer;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            position: relative;
+        }
+        .pdf-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+        .category-badge {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.9rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        /* Couleurs pour les actions/boutons */
+        .action-btn-youtube { background-color: #ff0000; }
+        .action-btn-tiktok { background-color: #000000; }
+        .action-btn-facebook { background-color: #1877f2; }
+        .action-btn-drive { background-color: #10b981; } /* Emerald */
+        .action-btn-maketou { background-color: #f97316; } /* Orange */
+
+        /* Animations de chargement pour l'image */
+        .image-placeholder {
+            background: linear-gradient(90deg, #2d3748 25%, #4a5568 50%, #2d3748 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite linear;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
 </head>
 <body class="antialiased">
-  <div class="max-w-7xl mx-auto p-6">
-    <header class="text-center py-10">
-      <h1 class="text-5xl font-black text-indigo-400">EBOOK Premium</h1>
-      <p class="text-gray-400 mt-2">By Stanley - Benin 2025</p>
-    </header>
 
-    <div id="auth-section" class="text-center my-8"></div>
+    <div id="app-container" class="max-w-7xl mx-auto p-4 sm:p-8 lg:p-12">
 
-    <div id="pdf-list" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 my-12"></div>
+        <!-- En-tête et Admin Login/Logout -->
+        <header class="flex flex-col sm:flex-row justify-between items-center py-8 mb-6 border-b border-gray-700/50">
+            <div class="flex flex-col items-start">
+                <h1 class="text-4xl font-extrabold text-indigo-400 mb-2 tracking-tight">EBOOK - Accès Premium (PostgreSQL API)</h1>
+                <p class="text-sm text-gray-500">Architecture: <span class="font-mono text-gray-400">Front-end (HTML/JS) ➡️ Serveur API (Node/Express) ➡️ PostgreSQL DB</span></p>
+            </div>
+            <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-0">
+                <button id="suggestion-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-6 rounded-full shadow-lg transition duration-150 w-full sm:w-auto transform hover:scale-[1.02]">
+                    Suggérer un PDF
+                </button>
+                <div id="auth-section" class="w-full sm:w-auto">
+                    <!-- Rempli par JS -->
+                </div>
+            </div>
+        </header>
 
-    <!-- Admin Panel caché -->
-    <div id="admin-panel" class="hidden bg-gray-900 p-8 rounded-2xl border border-indigo-600">
-      <h2 class="text-3xl font-bold text-indigo-400 mb-8">Admin - Ajouter un PDF</h2>
-      <!-- Ton formulaire admin complet ici (je te le mets en entier si tu veux) -->
-      <p class="text-green-400">Admin connecté – tout fonctionne !</p>
+        <!-- Avertissement Architectural -->
+        <div id="api-status-warning" class="bg-blue-900/40 p-5 rounded-xl border-l-4 border-blue-500 mb-8 shadow-inner">
+            <div class="flex items-center">
+                <svg class="w-6 h-6 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.394 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <h3 class="text-lg font-bold text-blue-300">Note Architecturale & Sécurité</h3>
+            </div>
+            <p id="api-status-message" class="mt-2 text-sm text-gray-300">
+                L'application tente de se connecter au serveur backend. Si cela échoue, des données de démo sont affichées (Mode Secours).
+            </p>
+        </div>
+
+
+        <!-- Vue Utilisateur Principale -->
+        <section id="user-view" class="mt-8">
+            <h2 class="text-3xl font-bold text-gray-200 mb-8 border-l-4 border-indigo-400 pl-3">Catalogue des Ressources</h2>
+            <div id="pdf-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                <!-- Les cartes PDF seront insérées ici par JavaScript -->
+            </div>
+            <p id="no-pdfs-message" class="text-gray-500 text-center mt-12 text-lg hidden">
+                <i class="fas fa-box-open mr-2"></i> Aucun PDF n'est encore disponible.
+            </p>
+        </section>
+
+        <!-- Vue Administrateur (Masquée par défaut) -->
+        <section id="admin-view" class="mt-12 p-8 bg-gray-800 rounded-2xl shadow-2xl border-2 border-indigo-500/50 hidden">
+            <h2 class="text-3xl font-bold text-indigo-400 mb-6">⚙️ Panneau d'Administration (PostgreSQL)</h2>
+            <p class="text-sm text-blue-400 mb-8 font-medium">
+                ✅ Les PDFs sont gérés via l'API vers PostgreSQL. L'image de couverture est générée par Gemini à la publication.
+            </p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- COLONNE 1: Publication -->
+                <div class="bg-gray-900 p-6 rounded-xl border border-gray-700">
+                    <h3 class="text-xl font-bold mb-5 text-gray-200 border-b border-gray-700 pb-2">Publier un nouveau PDF</h3>
+                    <form id="admin-publish-form" class="space-y-4">
+                        <!-- Champ Titre -->
+                        <div>
+                            <label for="admin-title" class="block text-sm font-medium text-gray-400">Titre du PDF</label>
+                            <input type="text" id="admin-title" required class="mt-1 block w-full rounded-lg border-gray-600 shadow-sm p-3 bg-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+
+                        <!-- Champ Catégorie -->
+                        <div>
+                            <label for="admin-category" class="block text-sm font-medium text-gray-400">Catégorie de Monétisation</label>
+                            <select id="admin-category" required class="mt-1 block w-full rounded-lg border-gray-600 shadow-sm p-3 bg-gray-700 text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="gratuit">1. Gratuit (Lien Drive direct ou upload)</option>
+                                <option value="action">2. Gratuit avec Actions (Social + upload)</option>
+                                <option value="payant">3. Payant (Lien Maketou)</option>
+                            </select>
+                        </div>
+
+                        <!-- Champs Conditionnels (Liens) -->
+                        <div id="links-fields" class="space-y-4 pt-2">
+                            <h4 class="text-base font-semibold text-gray-300">Liens de Fichiers</h4>
+                            <div>
+                                <label for="admin-drive-link" class="block text-sm font-medium text-gray-500">Lien Google Drive (optionnel pour Gratuit / Action)</label>
+                                <input type="url" id="admin-drive-link" class="mt-1 block w-full rounded-lg border-gray-600 shadow-sm p-3 bg-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://drive.google.com/...">
+                            </div>
+                            <div>
+                                <label for="admin-maketou-link" class="block text-sm font-medium text-gray-500">Lien Maketou (pour Payant)</label>
+                                <input type="url" id="admin-maketou-link" class="mt-1 block w-full rounded-lg border-gray-600 shadow-sm p-3 bg-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://maketou.com/...">
+                            </div>
+                        </div>
+
+                        <div id="action-fields" class="space-y-4 pt-4 hidden border-t border-gray-700">
+                            <h4 class="text-base font-semibold text-gray-300">Liens d'Actions Sociales</h4>
+                            <div>
+                                <label for="admin-youtube-link" class="block text-sm font-medium text-gray-500">Lien YouTube (Action 1)</label>
+                                <input type="url" id="admin-youtube-link" class="mt-1 block w-full rounded-lg shadow-sm p-3 bg-gray-700 text-white focus:ring-red-500 focus:border-red-500" placeholder="https://youtube.com/...">
+                            </div>
+                            <div>
+                                <label for="admin-tiktok-link" class="block text-sm font-medium text-gray-500">Lien TikTok (Action 2)</label>
+                                <input type="url" id="admin-tiktok-link" class="mt-1 block w-full rounded-lg shadow-sm p-3 bg-gray-700 text-white focus:ring-black focus:border-black" placeholder="https://tiktok.com/...">
+                            </div>
+                            <div>
+                                <label for="admin-facebook-link" class="block text-sm font-medium text-gray-500">Lien Facebook (Action 3)</label>
+                                <input type="url" id="admin-facebook-link" class="mt-1 block w-full rounded-lg shadow-sm p-3 bg-gray-700 text-white focus:ring-blue-500 focus:border-blue-500" placeholder="https://facebook.com/...">
+                            </div>
+                        </div>
+
+                        <!-- Upload PDF -->
+                        <div id="pdf-upload-section" class="space-y-4 pt-4 hidden border-t border-gray-700">
+                            <h4 class="text-base font-semibold text-gray-300">Upload PDF (pour Gratuit / Action)</h4>
+                            <input type="file" id="pdf-file-input" accept=".pdf" class="mt-1 block w-full rounded-lg border-gray-600 shadow-sm p-3 bg-gray-700 text-white">
+                            <button type="button" id="upload-pdf-btn" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg transition duration-150 shadow-md transform hover:scale-[1.01]">
+                                Uploader le PDF
+                            </button>
+                            <p id="pdf-upload-status" class="text-sm text-gray-300"></p>
+                        </div>
+
+                        <!-- Générer image Gemini -->
+                        <button type="button" id="generate-cover-btn" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-lg transition duration-150 shadow-md transform hover:scale-[1.01]">
+                            Générer couverture avec Gemini IA
+                        </button>
+                        <p id="image-gen-status" class="text-sm text-gray-300"></p>
+
+                        <button type="button" id="add-pdf-to-queue" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition duration-150 shadow-md transform hover:scale-[1.01]">
+                            Ajouter à la Queue de Publication
+                        </button>
+                    </form>
+                </div>
+
+                <!-- COLONNE 2: Queue et Gestion Publiée -->
+                <div class="space-y-8">
+                    <!-- Queue de Publication -->
+                    <div class="bg-gray-900 p-6 rounded-xl border border-gray-700">
+                        <h3 class="text-xl font-bold mb-4 text-gray-200 border-b border-gray-700 pb-2">Queue de Publication (<span id="queue-count" class="text-indigo-400">0</span>)</h3>
+                        <div id="publication-queue" class="space-y-3">
+                            <p class="text-gray-500">Aucun PDF en attente.</p>
+                        </div>
+                        <button type="button" id="publish-all-btn" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-lg transition duration-150 shadow-lg disabled:bg-emerald-800/50" disabled>
+                            <span id="publish-btn-text">🚀 Publier Tous les PDFs via API</span>
+                        </button>
+                    </div>
+
+                    <!-- Gestion des PDFs Publiés -->
+                    <div class="bg-gray-900 p-6 rounded-xl border border-red-500/50">
+                        <h3 class="text-xl font-bold mb-4 text-red-400 border-b border-gray-700 pb-2">Gestion des PDFs Publiés</h3>
+                        <div id="published-pdfs-list" class="space-y-3">
+                            <p class="text-gray-500">Chargement des PDFs depuis l'API...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modal de Suggérer un PDF -->
+        <div id="suggestion-modal" class="fixed inset-0 bg-gray-900 bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+            <div class="bg-gray-800 rounded-xl p-8 w-full max-w-lg shadow-2xl border border-indigo-600/50">
+                <h3 class="text-2xl font-bold mb-5 text-indigo-400">Suggérer un Sujet</h3>
+                <p class="text-sm text-gray-400 mb-6">Votre suggestion sera transmise pour examen (envoi via `mailto:`).</p>
+                <form id="suggestion-form" class="space-y-4">
+                    <div>
+                        <label for="suggest-email" class="block text-sm font-medium text-gray-300">Votre Gmail (pour réponse)</label>
+                        <input type="email" id="suggest-email" required class="mt-1 block w-full rounded-lg border-gray-600 shadow-sm p-3 bg-gray-700 text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder="votre.email@gmail.com">
+                    </div>
+                    <div>
+                        <label for="suggest-message" class="block text-sm font-medium text-gray-300">Titre ou sujet recherché</label>
+                        <textarea id="suggest-message" rows="4" required class="mt-1 block w-full rounded-lg border-gray-600 shadow-sm p-3 bg-gray-700 text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder="Je recherche un PDF sur l'histoire de la programmation en Python."></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" id="close-suggestion-modal" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 rounded-lg hover:bg-gray-700 transition duration-150">
+                            Annuler
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 transition duration-150">
+                            Envoyer la Suggestion
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal d'Actions Requises -->
+        <div id="action-modal" class="fixed inset-0 bg-gray-900 bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+            <div class="bg-gray-800 rounded-xl p-8 w-full max-w-2xl shadow-2xl border border-yellow-600/50">
+                <h3 id="action-modal-title" class="text-2xl font-bold mb-5 text-yellow-400">🚨 Actions requises avant le téléchargement</h3>
+                <p class="text-base text-gray-400 mb-6">Pour débloquer le PDF "<span id="pdf-action-title" class="font-semibold text-yellow-400"></span>", veuillez valider ces étapes.</p>
+                <div id="action-steps-container" class="space-y-4">
+                    <!-- Les étapes d'action sont insérées ici par JS -->
+                </div>
+                <div class="mt-8 flex justify-end space-x-3">
+                    <button type="button" id="close-action-modal" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 rounded-lg hover:bg-gray-700 transition duration-150">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone de message simple (pour les notifications) -->
+        <div id="message-box" class="fixed top-4 right-4 bg-green-600 text-white p-4 rounded-lg shadow-xl hidden transition-opacity duration-300 z-50"></div>
+
     </div>
-  </div>
 
-  <script type="module">
-    // URL du backend (auto-détection Render)
-    const BACKEND_URL = location.hostname.includes('onrender.com') 
-      ? 'https://' + location.hostname.split('.').shift().replace('-frontend','') + '-backend.onrender.com'
-      : 'http://localhost:3000';
+    <script type="module">
+        
+        // ##########################################
+        // ### CONFIGURATION API & SÉCURITÉ ADMIN ###
+        // ##########################################
 
-    const ADMIN_TOKEN = 'stanley-benin-2025-secret'; // à changer après déploiement
+        // URL de base de votre serveur Express/Node.js
+        // NOTE: Si le serveur Render n'est pas accessible, l'application passera en MODE SECOURS (Mock Data).
+        const SERVER_BASE_URL = location.hostname.includes('onrender.com') 
+          ? location.origin.replace('frontend', 'backend') 
+          : 'http://localhost:3000'; 
+        
+        // Jeton d'authentification Administrateur (doit correspondre à la variable ADMIN_SECRET_TOKEN du serveur)
+        const ADMIN_SECRET_TOKEN = 'monadminsecret'; 
 
-    // Test connexion API
-    fetch(`${BACKEND_URL}/api/test`).then(r => r.json()).then(d => {
-      document.body.innerHTML += `<div class="text-center text-green-400 text-2xl mt-20">API Connectée ! ${d.message || ''}</div>`;
-    }).catch(() => {
-      document.body.innerHTML += `<div class="text-center text-yellow-400 text-2xl mt-20">Mode secours (API offline)</div>`;
-    });
 
-    // Auth admin simple
-    if (localStorage.getItem('admin') === 'true') {
-      document.getElementById('auth-section').innerHTML = `<button onclick="localStorage.removeItem('admin');location.reload()" class="bg-red-600 text-white px-8 py-3 rounded-full">Déconnexion Admin</button>`;
-      document.getElementById('admin-panel').classList.remove('hidden');
-    } else {
-      document.getElementById('auth-section').innerHTML = `<button onclick="if(prompt('Mot de passe admin')==='${ADMIN_TOKEN}'){localStorage.setItem('admin','true');location.reload()}" class="bg-purple-600 text-white px-8 py-3 rounded-full">Connexion Admin</button>`;
-    }
-  </script>
+        // ##########################################
+        // ### ÉTAT & VARIABLES GLOBALES ###
+        // ##########################################
+
+        let pdfData = []; 
+        let adminLoggedIn = false;
+        let pdfQueue = [];
+        let nextPdfId = 1; 
+        
+        const MOCK_PDF_DATA = [
+            { id: 991, title: "Maîtriser le Déploiement Cloud (Demo)", category: "gratuit", driveLink: "#", maketouLink: null, actions: null, imageUrl: "https://placehold.co/400x250/10b981/ffffff?text=CLOUD+GUIDE", publishedAt: "2025-01-01T00:00:00Z" },
+            { id: 992, title: "Secrets de l'IA Générative (Demo)", category: "payant", driveLink: null, maketouLink: "#", actions: null, imageUrl: "https://placehold.co/400x250/8b5cf6/ffffff?text=AI+SECRETS", publishedAt: "2025-01-02T00:00:00Z" },
+            { id: 993, title: "Croissance sur les Réseaux 2025 (Demo)", category: "action", driveLink: "#", maketouLink: null, 
+                actions: { youtube: "#", tiktok: "#", facebook: "#" }, 
+                imageUrl: "https://placehold.co/400x250/f97316/ffffff?text=SOCIAL+GROWTH", publishedAt: "2025-01-03T00:00:00Z" },
+        ];
+
+
+        // ------------------------------------
+        // --- 1. FONCTIONS UTILES GLOBALES ---
+        // ------------------------------------
+
+        /**
+         * Affiche une boîte de message temporaire.
+         * @param {string} message Le texte à afficher.
+         * @param {string} type Le type de message (success, error, info).
+         */
+        function showMessage(message, type = 'info') {
+            const box = document.getElementById('message-box');
+            box.textContent = message;
+            box.className = 'fixed top-4 right-4 p-4 rounded-lg shadow-xl transition-opacity duration-300';
+            
+            let bgColor = 'bg-gray-700';
+            if (type === 'success') bgColor = 'bg-emerald-600';
+            if (type === 'error') bgColor = 'bg-red-600';
+            if (type === 'warning') bgColor = 'bg-yellow-600';
+
+            box.classList.add(bgColor, 'text-white', 'opacity-100');
+            box.classList.remove('hidden');
+
+            setTimeout(() => {
+                box.classList.add('opacity-0');
+                box.classList.remove('opacity-100');
+                setTimeout(() => {
+                    box.classList.add('hidden');
+                }, 300);
+            }, 3000);
+        }
+
+        /**
+         * Effectue une requête fetch vers l'API du serveur.
+         * AJOUT: En cas de "Failed to fetch" ou erreur 5xx, passe au mode MOCK DATA.
+         * @param {string} endpoint L'endpoint de l'API (ex: '/api/pdfs').
+         * @param {object} options Options de la requête fetch.
+         * @returns {Promise<Response>} La réponse de la requête fetch.
+         */
+        async function apiFetch(endpoint, options = {}) {
+            const defaultHeaders = {
+                'Content-Type': 'application/json',
+            };
+
+            if (adminLoggedIn) {
+                defaultHeaders['Authorization'] = `Bearer ${ADMIN_SECRET_TOKEN}`;
+            }
+            
+            const apiUrl = `\( {SERVER_BASE_URL} \){endpoint}`;
+            const isReadRequest = options.method === undefined || options.method === 'GET';
+
+            try {
+                const response = await fetch(apiUrl, {
+                    ...options,
+                    headers: {
+                        ...defaultHeaders,
+                        ...options.headers,
+                    },
+                });
+                
+                // Si c'est une requête de LECTURE et qu'on a une erreur 5xx
+                if (isReadRequest && response.status >= 500) {
+                    throw new Error(`Erreur serveur (${response.status})`);
+                }
+
+                if (!response.ok) {
+                    let errorDetails = {};
+                    try {
+                        errorDetails = await response.json();
+                    } catch {
+                        errorDetails = { error: response.statusText };
+                    }
+                    throw new Error(errorDetails.error || 'Erreur inconnue');
+                }
+
+                return response;
+            } catch (err) {
+                console.error('API Error:', err);
+                showMessage('Mode Secours activé : Erreur connexion serveur. Utilisation de données démo.', 'warning');
+                document.getElementById('api-status-message').textContent = 'Mode Secours activé (données démo). Erreur : ' + err.message;
+                document.getElementById('api-status-warning').classList.remove('bg-blue-900/40');
+                document.getElementById('api-status-warning').classList.add('bg-yellow-900/40');
+                return { ok: false, json: () => Promise.resolve(MOCK_PDF_DATA), text: () => Promise.resolve('Mock') };
+            }
+        }
+
+        // ------------------------------------
+        // --- 2. CHARGEMENT ET RENDERING PDFs ---
+        // ------------------------------------
+
+        /**
+         * Charge les PDFs depuis l'API ou Mock Data.
+         */
+        async function loadPDFs() {
+            const response = await apiFetch('/api/pdfs');
+            pdfData = response.ok ? await response.json() : MOCK_PDF_DATA;
+            renderPDFList(pdfData);
+            if (adminLoggedIn) {
+                loadPublishedPDFs();
+            }
+        }
+
+        /**
+         * Affiche les cartes PDFs dans la vue utilisateur.
+         * @param {array} data Liste des PDFs.
+         */
+        function renderPDFList(data) {
+            const pdfList = document.getElementById('pdf-list');
+            pdfList.innerHTML = '';
+
+            if (data.length === 0) {
+                document.getElementById('no-pdfs-message').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('no-pdfs-message').classList.add('hidden');
+
+            data.forEach(pdf => {
+                const card = document.createElement('div');
+                card.className = 'pdf-card rounded-xl';
+                card.innerHTML = `
+                    <div class="relative h-64 w-full">
+                        <img src="\( {pdf.imageUrl}" alt=" \){pdf.title}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2 text-gray-200">${pdf.title}</h3>
+                        <span class="category-badge bg-indigo-600 text-white">${pdf.category.toUpperCase()}</span>
+                        <div class="mt-4 space-y-2">
+                            ${getPDFButton(pdf)}
+                        </div>
+                    </div>
+                `;
+                pdfList.appendChild(card);
+            });
+        }
+
+        /**
+         * Génère le bouton de téléchargement/achat/action pour une carte PDF.
+         * @param {object} pdf Le PDF.
+         * @returns {string} HTML du bouton.
+         */
+        function getPDFButton(pdf) {
+            if (pdf.category === 'gratuit') {
+                return `<a href="${pdf.driveLink}" target="_blank" class="block w-full text-center py-3 rounded-lg text-white font-semibold action-btn-drive hover:opacity-90">Télécharger Gratuitement</a>`;
+            } else if (pdf.category === 'payant') {
+                return `<a href="${pdf.maketouLink}" target="_blank" class="block w-full text-center py-3 rounded-lg text-white font-semibold action-btn-maketou hover:opacity-90">Acheter sur Maketou</a>`;
+            } else if (pdf.category === 'action') {
+                return `<button onclick="showActionModal(${pdf.id})" class="block w-full text-center py-3 rounded-lg text-white font-semibold bg-indigo-600 hover:bg-indigo-500">Valider Actions pour Télécharger</button>`;
+            }
+            return '';
+        }
+
+        /**
+         * Affiche le modal d'actions sociales pour un PDF.
+         * @param {number} id L'ID du PDF.
+         */
+        function showActionModal(id) {
+            const pdf = pdfData.find(p => p.id === id);
+            if (!pdf) return;
+
+            document.getElementById('pdf-action-title').textContent = pdf.title;
+            const container = document.getElementById('action-steps-container');
+            container.innerHTML = '';
+
+            const actions = pdf.actions || {};
+            const youtube = actions.youtube ? `<a href="${actions.youtube}" target="_blank" class="block w-full py-3 text-white font-semibold action-btn-youtube rounded-lg hover:opacity-90">S'abonner YouTube</a>` : '';
+            const tiktok = actions.tiktok ? `<a href="${actions.tiktok}" target="_blank" class="block w-full py-3 text-white font-semibold action-btn-tiktok rounded-lg hover:opacity-90">Suivre sur TikTok</a>` : '';
+            const facebook = actions.facebook ? `<a href="${actions.facebook}" target="_blank" class="block w-full py-3 text-white font-semibold action-btn-facebook rounded-lg hover:opacity-90">Liker sur Facebook</a>` : '';
+
+            container.innerHTML = youtube + tiktok + facebook + `<a href="${pdf.driveLink}" target="_blank" class="block w-full py-3 text-white font-semibold action-btn-drive rounded-lg hover:opacity-90 mt-4">Télécharger après validation</a>`;
+
+            document.getElementById('action-modal').classList.remove('hidden');
+        }
+
+        // Fermeture modal actions
+        document.getElementById('close-action-modal').addEventListener('click', () => {
+            document.getElementById('action-modal').classList.add('hidden');
+        });
+
+        // ------------------------------------
+        // --- 3. GESTION ADMIN ---
+        // ------------------------------------
+
+        /**
+         * Vérifie si l'admin est connecté et affiche le panel.
+         */
+        function checkAdmin() {
+            const savedToken = localStorage.getItem('adminToken');
+            if (savedToken === ADMIN_SECRET_TOKEN) {
+                adminLoggedIn = true;
+                document.getElementById('auth-section').innerHTML = `<button onclick="logoutAdmin()" class="bg-red-600 hover:bg-red-500 text-white font-semibold py-3 px-6 rounded-full shadow-lg transition duration-150 transform hover:scale-[1.02]">Déconnexion Admin</button>`;
+                document.getElementById('admin-view').classList.remove('hidden');
+                loadPublishedPDFs();
+            } else {
+                document.getElementById('auth-section').innerHTML = `<button onclick="loginAdmin()" class="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 px-6 rounded-full shadow-lg transition duration-150 transform hover:scale-[1.02]">Connexion Admin</button>`;
+            }
+        }
+
+        /**
+         * Connexion admin avec prompt.
+         */
+        function loginAdmin() {
+            const token = prompt('Mot de passe admin :');
+            if (token === ADMIN_SECRET_TOKEN) {
+                localStorage.setItem('adminToken', token);
+                adminLoggedIn = true;
+                showMessage('Connexion admin réussie !', 'success');
+                location.reload();
+            } else {
+                showMessage('Mot de passe incorrect', 'error');
+            }
+        }
+
+        /**
+         * Déconnexion admin.
+         */
+        function logoutAdmin() {
+            localStorage.removeItem('adminToken');
+            adminLoggedIn = false;
+            showMessage('Déconnecté', 'success');
+            location.reload();
+        }
+
+        /**
+         * Charge les PDFs publiés pour l'admin.
+         */
+        async function loadPublishedPDFs() {
+            const response = await apiFetch('/api/pdfs');
+            const data = response.ok ? await response.json() : MOCK_PDF_DATA;
+            const list = document.getElementById('published-pdfs-list');
+            list.innerHTML = '';
+
+            data.forEach(pdf => {
+                const item = document.createElement('div');
+                item.className = 'bg-gray-800 p-4 rounded-lg flex justify-between items-center';
+                item.innerHTML = `
+                    <span class="text-gray-300">\( {pdf.title} ( \){pdf.category})</span>
+                    <button onclick="deletePDF(${pdf.id})" class="bg-red-600 hover:bg-red-500 text-white py-2 px-4 rounded-lg">Supprimer</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        /**
+         * Supprime un PDF via API.
+         * @param {number} id L'ID du PDF.
+         */
+        async function deletePDF(id) {
+            if (confirm('Confirmer la suppression ?')) {
+                const response = await apiFetch(`/api/pdfs/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showMessage('PDF supprimé', 'success');
+                    loadPDFs();
+                    loadPublishedPDFs();
+                } else {
+                    showMessage('Erreur suppression', 'error');
+                }
+            }
+        }
+
+        // ------------------------------------
+        // --- 4. GESTION FORMULAIRE ADMIN ---
+        // ------------------------------------
+
+        // Affichage conditionnel des champs en fonction de la catégorie
+        document.getElementById('admin-category').addEventListener('change', (e) => {
+            const value = e.target.value;
+            const actionFields = document.getElementById('action-fields');
+            const uploadSection = document.getElementById('pdf-upload-section');
+            const driveLink = document.getElementById('admin-drive-link');
+            const maketouLink = document.getElementById('admin-maketou-link');
+
+            actionFields.classList.add('hidden');
+            uploadSection.classList.add('hidden');
+            driveLink.parentElement.classList.add('hidden');
+            maketouLink.parentElement.classList.add('hidden');
+
+            if (value === 'action') {
+                actionFields.classList.remove('hidden');
+                uploadSection.classList.remove('hidden');
+                driveLink.parentElement.classList.remove('hidden');
+            } else if (value === 'gratuit') {
+                uploadSection.classList.remove('hidden');
+                driveLink.parentElement.classList.remove('hidden');
+            } else if (value === 'payant') {
+                maketouLink.parentElement.classList.remove('hidden');
+            }
+        });
+
+        // Upload PDF
+        document.getElementById('upload-pdf-btn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('pdf-file-input');
+            if (!fileInput.files[0]) return showMessage('Sélectionnez un PDF', 'error');
+
+            const formData = new FormData();
+            formData.append('pdf', fileInput.files[0]);
+
+            const status = document.getElementById('pdf-upload-status');
+            status.textContent = 'Upload en cours...';
+
+            const response = await apiFetch('/api/upload-pdf', { method: 'POST', body: formData, headers: {} });  // Pas de Content-Type pour FormData
+
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('admin-drive-link').value = data.url;  // Utilise le lien Cloudinary comme driveLink
+                status.textContent = 'PDF uploadé avec succès !';
+                status.classList.add('text-green-400');
+                showMessage('PDF uploadé', 'success');
+            } else {
+                status.textContent = 'Erreur d\'upload';
+                status.classList.add('text-red-400');
+                showMessage('Erreur upload', 'error');
+            }
+        });
+
+        // Générer image avec Gemini
+        document.getElementById('generate-cover-btn').addEventListener('click', async () => {
+            const title = document.getElementById('admin-title').value;
+            if (!title) return showMessage('Entrez un titre', 'error');
+
+            const status = document.getElementById('image-gen-status');
+            status.textContent = 'Génération en cours...';
+
+            const response = await apiFetch('/api/generate-image', {
+                method: 'POST',
+                body: JSON.stringify({ prompt: title })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                status.textContent = 'Image générée ! URL : ' + data.imageUrl;
+                status.classList.add('text-green-400');
+                showMessage('Image IA générée', 'success');
+                // Stocker l'URL pour la publication
+                document.getElementById('generate-cover-btn').dataset.imageUrl = data.imageUrl;
+            } else {
+                status.textContent = 'Erreur génération';
+                status.classList.add('text-red-400');
+                showMessage('Erreur IA', 'error');
+            }
+        });
+
+        // Ajouter à la queue
+        document.getElementById('add-pdf-to-queue').addEventListener('click', () => {
+            const title = document.getElementById('admin-title').value;
+            const category = document.getElementById('admin-category').value;
+            const driveLink = document.getElementById('admin-drive-link').value;
+            const maketouLink = document.getElementById('admin-maketou-link').value;
+            const youtube = document.getElementById('admin-youtube-link').value;
+            const tiktok = document.getElementById('admin-tiktok-link').value;
+            const facebook = document.getElementById('admin-facebook-link').value;
+            const imageUrl = document.getElementById('generate-cover-btn').dataset.imageUrl || '';
+
+            if (!title || !category) return showMessage('Titre et catégorie obligatoires', 'error');
+
+            const pdf = {
+                id: nextPdfId++,
+                title,
+                category,
+                driveLink,
+                maketouLink,
+                actions: { youtube, tiktok, facebook },
+                imageUrl
+            };
+
+            pdfQueue.push(pdf);
+            renderPublicationQueue();
+            showMessage('PDF ajouté à la queue', 'success');
+        });
+
+        /**
+         * Affiche la queue de publication.
+         */
+        function renderPublicationQueue() {
+            const queue = document.getElementById('publication-queue');
+            queue.innerHTML = '';
+
+            if (pdfQueue.length === 0) {
+                queue.innerHTML = '<p class="text-gray-500">Aucun PDF en attente.</p>';
+                document.getElementById('publish-all-btn').disabled = true;
+                return;
+            }
+
+            document.getElementById('publish-all-btn').disabled = false;
+            document.getElementById('queue-count').textContent = pdfQueue.length;
+
+            pdfQueue.forEach((pdf, index) => {
+                const item = document.createElement('div');
+                item.className = 'bg-gray-800 p-4 rounded-lg flex justify-between items-center';
+                item.innerHTML = `
+                    <span class="text-gray-300">\( {pdf.title} ( \){pdf.category})</span>
+                    <button onclick="removeFromQueue(${index})" class="bg-red-600 hover:bg-red-500 text-white py-2 px-4 rounded-lg">Retirer</button>
+                `;
+                queue.appendChild(item);
+            });
+        }
+
+        /**
+         * Retire un PDF de la queue.
+         * @param {number} index L'index dans la queue.
+         */
+        function removeFromQueue(index) {
+            pdfQueue.splice(index, 1);
+            renderPublicationQueue();
+            showMessage('PDF retiré de la queue', 'success');
+        }
+
+        // Publier tous
+        document.getElementById('publish-all-btn').addEventListener('click', async () => {
+            const buttonText = document.getElementById('publish-btn-text');
+            buttonText.textContent = 'Publication en cours...';
+
+            for (const pdf of pdfQueue) {
+                const response = await apiFetch('/api/pdfs', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: pdf.title,
+                        category: pdf.category,
+                        drive_link: pdf.driveLink,
+                        maketou_link: pdf.maketouLink,
+                        youtube_link: pdf.actions.youtube,
+                        tiktok_link: pdf.actions.tiktok,
+                        facebook_link: pdf.actions.facebook,
+                        image_url: pdf.imageUrl
+                    })
+                });
+
+                if (response.ok) {
+                    showMessage(`${pdf.title} publié !`, 'success');
+                } else {
+                    showMessage(`Erreur pour ${pdf.title}`, 'error');
+                }
+            }
+
+            pdfQueue = [];
+            renderPublicationQueue();
+            buttonText.textContent = '🚀 Publier Tous les PDFs via API';
+            loadPDFs();
+            loadPublishedPDFs();
+        });
+
+        // ------------------------------------
+        // --- 5. GESTION SUGGESTION MODAL ---
+        // ------------------------------------
+
+        document.getElementById('suggestion-btn').addEventListener('click', () => {
+            document.getElementById('suggestion-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('close-suggestion-modal').addEventListener('click', () => {
+            document.getElementById('suggestion-modal').classList.add('hidden');
+        });
+
+        document.getElementById('suggestion-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('suggest-email').value;
+            const message = document.getElementById('suggest-message').value;
+            window.location.href = `mailto:tonemail@example.com?subject=Suggestion PDF&body=De: \( {email}%0A \){message}`;
+            document.getElementById('suggestion-modal').classList.add('hidden');
+            showMessage('Suggestion envoyée !', 'success');
+        });
+
+        // ------------------------------------
+        // --- INITIALISATION ---
+        // ------------------------------------
+
+        checkAdmin();
+        loadPDFs();
+    </script>
 </body>
-  </html>
+</html>
